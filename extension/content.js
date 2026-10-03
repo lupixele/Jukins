@@ -356,6 +356,45 @@
   let completionSeenAt = 0;
   let activeUrn = null;
 
+  // When the selected outline item is a test/code challenge (no <video> on
+  // the page), skip forward to the next video entry in outline order.
+  function skipSelectedAssessment(selectedLi, videos) {
+    if (navLock.inFlight) return;
+    const allItems = Array.from(document.querySelectorAll('li[data-toc-content-id]'));
+    const idx = allItems.indexOf(selectedLi);
+    if (idx === -1) return;
+
+    // Next unfinished non-test item AFTER the selected one. Note it may exist
+    // but not be a video (e.g. another challenge after expanding late) — the
+    // next runCycle on that page will evaluate it again.
+    let nextItem = allItems.slice(idx + 1).find(li =>
+      !isAssessmentOrTest(li) && !isItemCompleted(li));
+
+    // Fallback: resume from any unfinished video anywhere in the outline
+    // (e.g. challenge is the final item but earlier videos remain).
+    if (!nextItem) {
+      const pending = videos.find(v => !v.isCompleted);
+      nextItem = pending ? pending.element : null;
+    }
+
+    if (!nextItem) {
+      stopRunner('Test/challenge reached with no remaining videos. Course done (videos only).');
+      return;
+    }
+    const nextLink = nextItem.querySelector('a.classroom-toc-item__link');
+    if (!nextLink) {
+      stopRunner('Next outline item has no link; stopped.');
+      return;
+    }
+    navLock.inFlight = true;
+    navLock.targetUrn = nextItem.getAttribute('data-toc-content-id');
+    navLock.initiatedAt = Date.now();
+    const title = nextItem.querySelector('.classroom-toc-item__title')?.textContent?.trim() || 'next item';
+    updateStatus('Skipping test/challenge → "' + title + '"');
+    try { nextLink.click(); }
+    catch (e) { window.location.href = nextLink.href; }
+  }
+
   function runCycle() {
     if (!isContextValid()) {
       stopRunner('Extension reloaded: refresh this tab.');
@@ -377,6 +416,13 @@
         if (Date.now() - navLock.initiatedAt > 30000) stopRunner('Navigation timed out; stopped without retrying.');
         return;
       }
+    }
+    // Decisive skip: if the currently selected outline entry is a
+    // test/quiz/code-challenge, there is no player on this page at all.
+    const selectedLi = document.querySelector('li.classroom-toc-item--selected');
+    if (selectedLi && isAssessmentOrTest(selectedLi)) {
+      skipSelectedAssessment(selectedLi, videos);
+      return;
     }
     if (!current || !video) {
       updateStatus('Waiting for a selected course video.');
