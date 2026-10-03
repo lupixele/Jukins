@@ -51,7 +51,13 @@
     }
   }
 
-  function broadcastConfig() {
+  // postMessage on every 1s tick is wasted work; only announce real changes
+  // (pass force=true when the player is re-created and must be re-patched).
+  let lastBroadcastSig = null;
+  function broadcastConfig(force) {
+    const sig = state.enabled + '|' + (state.enabled ? state.speed : 1.0) + '|' + state.muted;
+    if (!force && sig === lastBroadcastSig) return;
+    lastBroadcastSig = sig;
     try {
       window.postMessage({
         type: 'JUKINS_CONFIG',
@@ -132,6 +138,19 @@
     }
   }
 
+  // Reading `document.body.innerText` forces a synchronous layout, so sample it
+  // on an interval instead of on every 1s tick. A 429 still stops within ~3s.
+  const RATE_LIMIT_SAMPLE_MS = 3000;
+  let rateLimitSampleAt = 0;
+  let rateLimitedFlag = false;
+  function checkRateLimited() {
+    const now = Date.now();
+    if (now - rateLimitSampleAt < RATE_LIMIT_SAMPLE_MS) return rateLimitedFlag;
+    rateLimitSampleAt = now;
+    rateLimitedFlag = isRateLimited();
+    return rateLimitedFlag;
+  }
+
   function createHUD() {
     if (document.getElementById('jukins-hud-root')) return;
 
@@ -185,6 +204,7 @@
     `;
 
     document.body.appendChild(hudRoot);
+    resetHUDRenderCache();
 
     // Bind HUD events
     document.getElementById('jukins-toggle-btn').addEventListener('click', toggleRunner);
@@ -201,29 +221,56 @@
     });
   }
 
+  // Cache HUD nodes and last-rendered values so a tick that changes nothing
+  // performs zero DOM writes.
+  const hudRefs = { badge: null, toggleBtn: null, statVideos: null, statTests: null, logEl: null };
+  const hudLast = { enabled: null, videos: null, tests: null, status: null };
+
+  function resetHUDRenderCache() {
+    hudRefs.badge = null;
+    hudRefs.toggleBtn = null;
+    hudRefs.statVideos = null;
+    hudRefs.statTests = null;
+    hudRefs.logEl = null;
+    hudLast.enabled = null;
+    hudLast.videos = null;
+    hudLast.tests = null;
+    hudLast.status = null;
+  }
+
   function updateHUD() {
     if (!hudRoot) return;
-    const badge = document.getElementById('jukins-badge');
-    const toggleBtn = document.getElementById('jukins-toggle-btn');
-    const statVideos = document.getElementById('jukins-stat-videos');
-    const statTests = document.getElementById('jukins-stat-tests');
-    const logEl = document.getElementById('jukins-hud-log');
+    if (!hudRefs.badge) {
+      hudRefs.badge = document.getElementById('jukins-badge');
+      hudRefs.toggleBtn = document.getElementById('jukins-toggle-btn');
+      hudRefs.statVideos = document.getElementById('jukins-stat-videos');
+      hudRefs.statTests = document.getElementById('jukins-stat-tests');
+      hudRefs.logEl = document.getElementById('jukins-hud-log');
+    }
+    const { badge, toggleBtn, statVideos, statTests, logEl } = hudRefs;
 
-    if (badge) {
+    if (badge && hudLast.enabled !== state.enabled) {
+      hudLast.enabled = state.enabled;
       badge.textContent = state.enabled ? 'Active' : 'Stopped';
       badge.className = `jukins-badge ${state.enabled ? 'jukins-badge-running' : 'jukins-badge-paused'}`;
+      if (toggleBtn) {
+        toggleBtn.textContent = state.enabled ? 'Pause Runner' : 'Start Auto-Complete';
+        toggleBtn.className = `jukins-btn ${state.enabled ? 'jukins-btn-danger' : 'jukins-btn-primary'}`;
+      }
     }
-    if (toggleBtn) {
-      toggleBtn.textContent = state.enabled ? 'Pause Runner' : 'Start Auto-Complete';
-      toggleBtn.className = `jukins-btn ${state.enabled ? 'jukins-btn-danger' : 'jukins-btn-primary'}`;
+
+    const videosText = `${state.completedVideos} / ${state.totalVideos} (Viewed)`;
+    if (statVideos && hudLast.videos !== videosText) {
+      hudLast.videos = videosText;
+      statVideos.textContent = videosText;
     }
-    if (statVideos) {
-      statVideos.textContent = `${state.completedVideos} / ${state.totalVideos} (Viewed)`;
+    const testsText = `${state.skippedTests}`;
+    if (statTests && hudLast.tests !== testsText) {
+      hudLast.tests = testsText;
+      statTests.textContent = testsText;
     }
-    if (statTests) {
-      statTests.textContent = `${state.skippedTests}`;
-    }
-    if (logEl) {
+    if (logEl && hudLast.status !== state.statusText) {
+      hudLast.status = state.statusText;
       logEl.textContent = state.statusText;
     }
   }
@@ -325,7 +372,35 @@
     });
   }
 
+  // Outline scans are the heaviest recurring work: cache the derived list and
+  // only rescan when the URL, the selected entry, or the DOM attachment change.
+  const TOC_CACHE_MS = 2000;
+  let tocCache = { at: 0, href: '', selectedUrn: null, videos: null, tests: 0 };
+
+  function selectedTocUrn() {
+    const li = document.querySelector('li.classroom-toc-item--selected');
+    return li ? li.getAttribute('data-toc-content-id') : null;
+  }
+
+  function applyTocStats(videos, testsCount) {
+    state.skippedTests = testsCount;
+    state.totalVideos = videos.length;
+    state.completedVideos = videos.filter(v => v.isCompleted).length;
+  }
+
   function getTOCItems() {
+    const now = Date.now();
+    const href = (typeof location !== 'undefined' && location.href) || '';
+    const selUrn = selectedTocUrn();
+    const cached = tocCache.videos;
+    // `isConnected !== false` keeps mocks/older browsers working (undefined => attached).
+    const attached = !cached || cached.length === 0 || cached[0].element.isConnected !== false;
+    if (cached && attached && now - tocCache.at < TOC_CACHE_MS &&
+        tocCache.href === href && tocCache.selectedUrn === selUrn) {
+      applyTocStats(cached, tocCache.tests);
+      return cached;
+    }
+
     expandAllCollapsedSections();
     const items = Array.from(document.querySelectorAll('li[data-toc-content-id]'));
     const videos = [];
@@ -345,9 +420,8 @@
       }
     });
 
-    state.skippedTests = testsCount;
-    state.totalVideos = videos.length;
-    state.completedVideos = videos.filter(v => v.isCompleted).length;
+    applyTocStats(videos, testsCount);
+    tocCache = { at: now, href, selectedUrn: selUrn, videos, tests: testsCount };
 
     return videos;
   }
@@ -403,7 +477,7 @@
     }
     if (!state.enabled) return;
     broadcastConfig();
-    if (/HTTP ERROR 429/i.test(document.body?.innerText || '')) {
+    if (checkRateLimited()) {
       stopRunner('Rate limited (429). Stopped; no automatic refresh.');
       return;
     }
@@ -433,7 +507,7 @@
       completionSeenAt = 0;
       lastPlayAttempt = 0;
       // New video loaded: re-apply background override + force playback
-      broadcastConfig();
+      broadcastConfig(true);
       try {
         if (!video.muted && state.muted) video.muted = true;
         if (video.paused && !video.ended) {

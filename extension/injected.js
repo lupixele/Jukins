@@ -9,15 +9,25 @@
     }
     restorations.clear();
   }
+  // LinkedIn exports Video.js through its AMD media-player module; the module
+  // object is stable for the page, so resolve it once and reuse it.
+  let cachedVjs;
+  function getVjs() {
+    if (cachedVjs) return cachedVjs;
+    try {
+      cachedVjs = window.videojs || (typeof window.require === 'function'
+        ? window.require('media-player')?.videojs : null) || null;
+    } catch (e) {
+      cachedVjs = null;
+    }
+    return cachedVjs;
+  }
   function allowBackground() {
     if (!enabled) return;
     try {
       const el = document.querySelector('video.vjs-tech')?.closest('.video-js');
       if (!el) return;
-      // LinkedIn exports Video.js through its AMD media-player module.
-      const vjs = window.videojs || (typeof window.require === 'function'
-        ? window.require('media-player').videojs : null);
-      const player = vjs?.getPlayer?.(el.id);
+      const player = getVjs()?.getPlayer?.(el.id);
       if (!player || player.isDisposed?.()) return;
       for (const [name, method, replacement] of [
         ['playbackAudit', '_shouldPause', () => false],
@@ -41,9 +51,10 @@
     else allowBackground();
   });
 
-  // Extra safety: re-apply every 2 seconds in case Video.js re-instantiates
+  // Extra safety: re-apply every 3 seconds in case Video.js re-instantiates.
+  // Patching is idempotent, so a covered player costs one cheap lookup.
   setInterval(() => {
     if (enabled) allowBackground();
-  }, 2000);
+  }, 3000);
 })();
 

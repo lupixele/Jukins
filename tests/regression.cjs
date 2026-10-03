@@ -52,6 +52,7 @@ const sandbox = { document, chrome:{runtime:{id:'test'}}, window:{postMessage(){
 const cut = source.indexOf('  chrome.runtime.onMessage.addListener');
 assert.ok(cut > 0, 'insertion seam must exist');
 vm.runInNewContext(source.slice(0,cut) + `
+ globalThis.originalGetTOCItems = getTOCItems;
  getTOCItems = () => toc();
  globalThis.setTOC = fn => { getTOCItems = fn; };
  updateStatus = text => { globalThis.status = text; };
@@ -93,8 +94,9 @@ assert.equal(clicks,1,'navLock blocks duplicates');
 
 t.navLock.inFlight = false;
 document.body.innerText = 'HTTP ERROR 429';
+now += 4000; // rate-limit probe is sampled at most every 3s
 t.runCycle();
-assert.equal(t.state.enabled,false);
+assert.equal(t.state.enabled,false,'429 stops the runner');
 assert.equal(reloads,0,'429 never auto-reloads');
 document.body.innerText = '';
 
@@ -113,12 +115,32 @@ selectFn = sel =>
 sandbox.setTOC(() => [dto2]);
 
 t.state.enabled = true;
+now += 4000; // clear the cached 429 sample before resuming
 const before = clicks;
 t.runCycle();
 assert.equal(clicks, before + 1, 'challenge page skips to next video');
 assert.equal(t.navLock.targetUrn, dto2.urn);
 t.runCycle();
 assert.equal(clicks, before + 1, 'no double skip while navigating');
+
+// --- Phase 5: outline scan cache (perf) ---
+selectAllFn = sel => (sel.startsWith('li[data-toc-content-id]') ? [v1Li, v2Li] : []);
+selectFn = sel => (sel === 'li.classroom-toc-item--selected' ? v1Li : null);
+const realGetTOC = sandbox.originalGetTOCItems;
+const scanA = realGetTOC();
+const scanB = realGetTOC();
+assert.equal(scanA, scanB, 'repeated ticks reuse the cached outline instead of rescanning');
+assert.equal(scanA.length, 2, 'cached outline holds both videos');
+assert.equal(t.state.completedVideos, 1, 'stats still derived on cache hits');
+assert.equal(t.state.totalVideos, 2);
+selectFn = sel => (sel === 'li.classroom-toc-item--selected' ? v2Li : null);
+const scanC = realGetTOC();
+assert.notEqual(scanC, scanA, 'changing the selected entry invalidates the cache');
+selectFn = sel => (sel === 'li.classroom-toc-item--selected' ? v1Li : null);
+const scanD = realGetTOC(); // selection changed again => fresh scan
+const scanE = realGetTOC(); // same key => cache hit
+assert.notEqual(scanD, scanC, 'every selection change rescans');
+assert.equal(scanE, scanD, 're-cached under the new key');
 
 const injected = fs.readFileSync(require('node:path').join(__dirname, '../extension/injected.js'), 'utf8');
 for (const banned of ['Document.prototype', 'Window.prototype', 'IntersectionObserver', 'HTMLMediaElement.prototype']) {
