@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jukins Controller</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tagline {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+    .btn {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+    .btn-danger {
+      background: #ef4444;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    .speed-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .speed-opt {
+      padding: 6px 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .speed-opt.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+    .features-list {
+      margin-top: 14px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .features-list li {
+      margin-left: 14px;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <span>⚡</span> Jukins
+    </div>
+    <span style="font-size: 10px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">v1.0</span>
+  </div>
+
+  <p class="tagline">Autonomous LinkedIn Learning video speed-watcher and course completer.</p>
+
+  <button id="toggle-runner" class="btn btn-primary">Start Auto-Completer</button>
+
+  <div class="section-title">Playback Acceleration</div>
+  <div class="speed-grid">
+    <div class="speed-opt" data-speed="1">1x</div>
+    <div class="speed-opt" data-speed="1.25">1.25x</div>
+    <div class="speed-opt" data-speed="1.5">1.5x</div>
+    <div class="speed-opt active" data-speed="2">2.0x (Max)</div>
+  </div>
+
+  <div class="features-list">
+    <strong>Rules Applied:</strong>
+    <ul>
+      <li>Skips code challenges, exams, and quizzes</li>
+      <li>Muted 2.0x native playback (lowest 360p quality)</li>
+      <li>Automatic HTTP 429 backoff & request throttling</li>
+      <li>Live floating HUD overlay in classroom</li>
+    </ul>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

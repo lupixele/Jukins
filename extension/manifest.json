@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Jukins - Course Video Auto-Completer",
+  "version": "1.2.0",
+  "description": "Autonomously plays through LinkedIn Learning course videos at accelerated speed and marks them completed while skipping tests and quizzes, in focused or background tabs.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.linkedin.com/learning/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Jukins Controller"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.linkedin.com/learning/*"
+      ],
+      "js": [
+        "injected.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://*.linkedin.com/learning/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "hud.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

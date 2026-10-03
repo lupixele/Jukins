@@ -1,0 +1,180 @@
+/* Jukins Floating HUD Styles */
+#jukins-hud-root {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #f3f4f6;
+  font-size: 13px;
+  line-height: 1.4;
+  user-select: none;
+}
+
+.jukins-hud-panel {
+  background: rgba(17, 24, 39, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  width: 290px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease-in-out;
+}
+
+.jukins-hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.jukins-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  color: #38bdf8;
+}
+
+.jukins-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.jukins-badge-running {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.jukins-badge-paused {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.jukins-hud-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.jukins-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.jukins-stat-label {
+  color: #9ca3af;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.jukins-stat-val {
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.jukins-hud-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.jukins-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.jukins-btn-primary {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.jukins-btn-primary:hover {
+  background: #0369a1;
+}
+
+.jukins-btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.jukins-btn-danger:hover {
+  background: #b91c1c;
+}
+
+.jukins-btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+}
+
+.jukins-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.jukins-hud-speed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.jukins-speed-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.jukins-speed-btn {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid transparent;
+  color: #d1d5db;
+  cursor: pointer;
+}
+
+.jukins-speed-btn.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+  font-weight: 700;
+}
+
+.jukins-hud-log {
+  font-size: 11px;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
